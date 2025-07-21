@@ -156,7 +156,8 @@ async def creat_folder(
                     # 当都指向同一个文件时(此处路径不能用小写，因为Linux大小写敏感)
                     if (await aiofiles.os.stat(file_path)).st_ino == (await aiofiles.os.stat(file_new_path)).st_ino:
                         # 硬链接开时，不需要处理
-                        if config.soft_link == 2:
+                        # 除非 scrape_success_folder_and_skip_link 为 True，此时视为关闭软硬链接
+                        if config.soft_link == 2 and not config.scrape_success_folder_and_skip_link:
                             json_data["dont_move_movie"] = True
                         # 非硬链接模式，删除目标文件
                         else:
@@ -355,7 +356,8 @@ async def move_other_file(
     json_data: JsonData, folder_old_path: str, folder_new_path: str, file_name: str, naming_rule: str
 ) -> None:
     # 软硬链接模式不移动
-    if config.soft_link != 0:
+    # 除非 scrape_success_folder_and_skip_link 为 True，此时视为关闭软硬链接
+    if config.soft_link != 0 and not config.scrape_success_folder_and_skip_link:
         return
 
     # 目录相同不移动
@@ -480,62 +482,64 @@ async def move_movie(json_data: MoveContext, file_path: str, file_new_path: str)
         json_data["file_path"] = file_new_path
         return True
 
-    # 软链接模式开时，先删除目标文件，再创建软链接(需考虑自身是软链接的情况)
-    if config.soft_link == 1:
-        temp_path = file_path
-        # 自身是软链接时，获取真实路径
-        if await aiofiles.os.path.islink(file_path):
-            file_path = await read_link_async(file_path)  # delete_file(temp_path)
-        # 删除目标路径存在的文件，否则会创建失败，
-        await delete_file_async(file_new_path)
-        try:
-            await aiofiles.os.symlink(file_path, file_new_path)
-            json_data["file_path"] = file_new_path
-            LogBuffer.log().write(
-                f"\n 🍀 Softlink done! \n    Softlink file: {file_new_path} \n    Source file: {file_path}"
-            )
-            return True
-        except Exception as e:
-            if IS_WINDOWS:
-                LogBuffer.log().write(
-                    "\n 🥺 Softlink failed! (创建软连接失败！"
-                    "注意：Windows 平台输出目录必须是本地磁盘！不支持挂载的 NAS 盘或网盘！"
-                    f"如果是本地磁盘，请尝试以管理员身份运行！)\n{str(e)}\n 🙉 [Movie] {temp_path}"
-                )
-            else:
-                LogBuffer.log().write(f"\n 🥺 Softlink failed! (创建软连接失败！)\n{str(e)}\n 🙉 [Movie] {temp_path}")
-            signal.show_traceback_log(traceback.format_exc())
-            signal.show_log_text(traceback.format_exc())
-            return False
-
-    # 硬链接模式开时，创建硬链接
-    elif config.soft_link == 2:
-        try:
+    # scrape_success_folder_and_skip_link 为 True 时，不应额外创建软硬链接，当前文件不论是否软硬链接，视为普通文件直接移动
+    if not config.scrape_success_folder_and_skip_link:
+        # 软链接模式开时，先删除目标文件，再创建软链接(需考虑自身是软链接的情况)
+        if config.soft_link == 1:
+            temp_path = file_path
+            # 自身是软链接时，获取真实路径
+            if await aiofiles.os.path.islink(file_path):
+                file_path = await read_link_async(file_path)  # delete_file(temp_path)
+            # 删除目标路径存在的文件，否则会创建失败，
             await delete_file_async(file_new_path)
-            await aiofiles.os.link(file_path, file_new_path)
-            json_data["file_path"] = file_new_path
-            LogBuffer.log().write(
-                f"\n 🍀 HardLink done! \n    HadrLink file: {file_new_path} \n    Source file: {file_path}"
-            )
-            return True
-        except Exception as e:
-            if IS_MAC:
+            try:
+                await aiofiles.os.symlink(file_path, file_new_path)
+                json_data["file_path"] = file_new_path
                 LogBuffer.log().write(
-                    "\n 🥺 HardLink failed! (创建硬连接失败！"
-                    "注意：硬链接要求待刮削文件和输出目录必须是同盘，不支持跨卷！"
-                    "如要跨卷可以尝试软链接模式！另外，Mac 平台非本地磁盘不支持创建硬链接（权限问题），"
-                    f"请选择软链接模式！)\n{str(e)} "
+                    f"\n 🍀 Softlink done! \n    Softlink file: {file_new_path} \n    Source file: {file_path}"
                 )
-            else:
+                return True
+            except Exception as e:
+                if IS_WINDOWS:
+                    LogBuffer.log().write(
+                        "\n 🥺 Softlink failed! (创建软连接失败！"
+                        "注意：Windows 平台输出目录必须是本地磁盘！不支持挂载的 NAS 盘或网盘！"
+                        f"如果是本地磁盘，请尝试以管理员身份运行！)\n{str(e)}\n 🙉 [Movie] {temp_path}"
+                    )
+                else:
+                    LogBuffer.log().write(f"\n 🥺 Softlink failed! (创建软连接失败！)\n{str(e)}\n 🙉 [Movie] {temp_path}")
+                signal.show_traceback_log(traceback.format_exc())
+                signal.show_log_text(traceback.format_exc())
+                return False
+
+        # 硬链接模式开时，创建硬链接
+        elif config.soft_link == 2:
+            try:
+                await delete_file_async(file_new_path)
+                await aiofiles.os.link(file_path, file_new_path)
+                json_data["file_path"] = file_new_path
                 LogBuffer.log().write(
-                    f"\n 🥺 HardLink failed! (创建硬连接失败！注意："
-                    f"硬链接要求待刮削文件和输出目录必须是同盘，不支持跨卷！"
-                    f"如要跨卷可以尝试软链接模式！)\n{str(e)} "
+                    f"\n 🍀 HardLink done! \n    HadrLink file: {file_new_path} \n    Source file: {file_path}"
                 )
-            LogBuffer.error().write("创建硬连接失败！")
-            signal.show_traceback_log(traceback.format_exc())
-            signal.show_log_text(traceback.format_exc())
-            return False
+                return True
+            except Exception as e:
+                if IS_MAC:
+                    LogBuffer.log().write(
+                        "\n 🥺 HardLink failed! (创建硬连接失败！"
+                        "注意：硬链接要求待刮削文件和输出目录必须是同盘，不支持跨卷！"
+                        "如要跨卷可以尝试软链接模式！另外，Mac 平台非本地磁盘不支持创建硬链接（权限问题），"
+                        f"请选择软链接模式！)\n{str(e)} "
+                    )
+                else:
+                    LogBuffer.log().write(
+                        f"\n 🥺 HardLink failed! (创建硬连接失败！注意："
+                        f"硬链接要求待刮削文件和输出目录必须是同盘，不支持跨卷！"
+                        f"如要跨卷可以尝试软链接模式！)\n{str(e)} "
+                    )
+                LogBuffer.error().write("创建硬连接失败！")
+                signal.show_traceback_log(traceback.format_exc())
+                signal.show_log_text(traceback.format_exc())
+                return False
 
     # 其他情况，就移动文件
     result, error_info = await move_file_async(file_path, file_new_path)
@@ -1386,7 +1390,10 @@ async def get_movie_list(file_mode: FileMode, movie_path: str, escape_folder_lis
         else:
             signal.show_log_text(" 🖥 Movie path: " + movie_path)
             signal.show_log_text(" 🔎 Searching all videos, Please wait...")
-            signal.set_label_file_path.emit(f"正在遍历待刮削视频目录中的所有视频，请等待...\n {movie_path}")
+            if config.scrape_success_folder_and_skip_link:
+                signal.set_label_file_path.emit(f"正在遍历成功输出目录中的所有视频，请等待...\n {movie_path}")
+            else:
+                signal.set_label_file_path.emit(f"正在遍历待刮削视频目录中的所有视频，请等待...\n {movie_path}")
             if "folder" in config.no_escape:
                 escape_folder_list = []
             elif config.main_mode == 3 or config.main_mode == 4:
@@ -1598,7 +1605,8 @@ async def deal_old_files(
     trailer_exists = True
 
     # 软硬链接模式，不处理旧的图片
-    if config.soft_link != 0:
+    # 除非 scrape_success_folder_and_skip_link 为 True，此时视为关闭软硬链接
+    if config.soft_link != 0 and not config.scrape_success_folder_and_skip_link:
         return pic_final_catched, single_folder_catched
 
     """
@@ -1924,8 +1932,8 @@ def _deal_path_name(path: str) -> str:
 
 async def save_success_list(old_path: str = "", new_path: str = "") -> None:
     if old_path and config.record_success_file:
-        # 软硬链接时，保存原路径；否则保存新路径
-        if config.soft_link != 0:
+        # 软硬链接时，保存原路径 (除非 scrape_success_folder_and_skip_link 为 True，此时视为关闭软硬链接）；否则保存新路径
+        if config.soft_link != 0 and not config.scrape_success_folder_and_skip_link:
             Flags.success_list.add(convert_path(old_path))
         else:
             Flags.success_list.add(convert_path(new_path))
