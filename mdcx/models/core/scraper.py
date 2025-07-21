@@ -51,7 +51,7 @@ from mdcx.models.flags import Flags
 from mdcx.models.log_buffer import LogBuffer
 from mdcx.models.tools.emby_actor_image import update_emby_actor_photo
 from mdcx.models.tools.emby_actor_info import creat_kodi_actors
-from mdcx.models.types import FileInfo, JsonData
+from mdcx.models.types import FileInfo, JsonData, new_json_data
 from mdcx.signals import signal
 from mdcx.utils import convert_path, get_current_time, get_real_time, get_used_time, split_path
 from mdcx.utils.file import copy_file_async, move_file_async, read_link_async
@@ -66,7 +66,8 @@ async def _scrape_one_file(file_path: str, file_info: FileInfo, file_mode: FileM
     file_path = convert_path(file_path)
 
     # 获取文件信息
-    json_data = asdict(file_info)  # type: ignore
+    json_data = new_json_data()
+    json_data.update(asdict(file_info))  # type: ignore
     json_data = cast(JsonData, json_data)  # todo
 
     movie_number = file_info.number
@@ -91,6 +92,7 @@ async def _scrape_one_file(file_path: str, file_info: FileInfo, file_mode: FileM
     if config.main_mode == 4:
         appoint_number = file_info.appoint_number
         result, nfo_data = await get_nfo_data(file_path, movie_number, appoint_number)
+        is_nfo_existed = result
         json_data.update(dict(nfo_data))
         if result:  # 有nfo
             movie_number = nfo_data["number"]

@@ -466,6 +466,53 @@ class ReadNfoResult(WriteNfoInput):
     thumb_list: list[tuple[str, str]]
     actor_amazon: list[str]
 
+def new_read_nfo_result() -> ReadNfoResult:
+    return {
+        "title": "",
+        "originaltitle": "",
+        "originaltitle_amazon": "",
+        "number": "",
+        "letters": "",
+        "actor": "",
+        "all_actor": "",
+        "outline": "",
+        "originalplot": "",
+        "tag": "",
+        "release": "",
+        "year": "",
+        "runtime": "",
+        "score": "",
+        "director": "",
+        "series": "",
+        "studio": "",
+        "publisher": "",
+        "website": "",
+        "thumb": "",
+        "poster": "",
+        "trailer": "",
+        "wanted": "",
+        "poster_path": "",
+        "thumb_path": "",
+        "fanart_path": "",
+        "cd_part": "",
+        "country": "",
+        "outline_from": "",
+        "mosaic": "",
+        "destroyed": "",
+        "leak": "",
+        "wuma": "",
+        "youma": "",
+        "c_word": "",
+        "definition": "",
+        "source": "",
+        "poster_from": "",
+        "thumb_from": "",
+        "extrafanart_from": "",
+        "trailer_from": "",
+        "tag_only": "",
+        "thumb_list": [],
+        "actor_amazon": [],
+    }
 
 # crawler =================================================================
 class CallCrawlerInput(TypedDict):

@@ -13,7 +13,7 @@ from mdcx.config.manager import config
 from mdcx.consts import ManualConfig
 from mdcx.models.core.utils import render_name_template
 from mdcx.models.log_buffer import LogBuffer
-from mdcx.models.types import ReadNfoResult, WriteNfoInput
+from mdcx.models.types import ReadNfoResult, WriteNfoInput, new_read_nfo_result
 from mdcx.number import get_number_letters
 from mdcx.signals import signal
 from mdcx.utils import convert_path, get_used_time, split_path
@@ -363,7 +363,7 @@ async def get_nfo_data(file_path: str, movie_number: str, appoint_number: str) -
     local_nfo_path = os.path.splitext(file_path)[0] + ".nfo"
     local_nfo_name = split_path(local_nfo_path)[1]
     file_folder = split_path(file_path)[0]
-    json_data: ReadNfoResult = {}
+    json_data: ReadNfoResult = new_read_nfo_result()
     json_data["source"] = "nfo"
     LogBuffer.req().write(local_nfo_path)
     json_data["poster_from"] = "local"
