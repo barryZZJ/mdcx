@@ -905,7 +905,10 @@ async def movie_lists(escape_folder_list: list[str], movie_type: str, movie_path
     total = []
     file_type = movie_type.split("|")
     skip_list = ["skip", ".skip", ".ignore"]
-    not_skip_success = bool("skip_success_file" not in config.no_escape)
+    not_skip_success = bool(
+        "skip_success_file" not in config.no_escape
+        or ("scrape_success_file" in config.no_escape and config.main_mode in [3, 4])
+    )
 
     signal.show_traceback_log("🔎 遍历待刮削目录....")
 
