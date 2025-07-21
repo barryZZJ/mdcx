@@ -621,7 +621,7 @@ async def scrape(file_mode: FileMode, movie_list: Optional[list[str]]) -> None:
                 signal.show_log_text(f"{n} 🖥 File path: {each_f}\n 🌐 File url: {each_i[1]}")
 
     # 获取设置的媒体目录、失败目录、成功目录
-    movie_path, _, _, escape_folder_list, _, softlink_path = get_movie_path_setting()
+    movie_path, success_folder, _, escape_folder_list, _, softlink_path = get_movie_path_setting()
 
     # 获取待刮削文件列表的相关信息
     if not movie_list:
