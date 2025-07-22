@@ -120,7 +120,10 @@ async def creat_folder(
                         return True
                 except Exception:
                     pass
-
+                # TODO 命名没有带分集
+                #  Success folder already exists a same name file!
+                #  ❗️ Current file: J:\simon\test-out\4K-DSVR-0817\4K-DSVR-0817-cd4.mp4
+                #  ❗️ Success folder already exists file: J:\simon\test-out\4K-DSVR-0817\4K-DSVR-0817.mp4
                 # 路径不同，当指向不同文件时
                 json_data["title"] = "Success folder already exists a same name file!"
                 LogBuffer.error().write(
