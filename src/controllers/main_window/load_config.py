@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, cast
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QComboBox, QFileDialog
 
 from models.base.file import delete_file_sync
 from models.base.utils import convert_path
@@ -43,16 +43,7 @@ def load_config(self):
         mdcx_config = False
 
     if os.path.exists(config_path):
-        # ======================================================================================获取配置文件夹中的配置文件列表
-        all_files = os.listdir(config_folder)
-        all_config_files = [i for i in all_files if ".ini" in i]
-        all_config_files.sort()
-        self.Ui.comboBox_change_config.clear()
-        self.Ui.comboBox_change_config.addItems(all_config_files)
-        if config_file in all_config_files:
-            self.Ui.comboBox_change_config.setCurrentIndex(all_config_files.index(config_file))
-        else:
-            self.Ui.comboBox_change_config.setCurrentIndex(all_config_files.index("config.ini"))
+        reload_config_files(config_folder, self.Ui.comboBox_change_config, config_file)
 
         read_version = config.version
         # region media
@@ -1237,3 +1228,16 @@ def load_config(self):
     else:  # ini不存在，重新创建
         signal.show_log_text(f"Create config file: {config_path} ")
         self.pushButton_init_config_clicked()
+
+
+def reload_config_files(config_folder: str, comboBox_change_config: QComboBox, curr_config_file: str):
+    # ======================================================================================获取配置文件夹中的配置文件列表
+    all_files = os.listdir(config_folder)
+    all_config_files = [i for i in all_files if ".ini" in i]
+    all_config_files.sort()
+    comboBox_change_config.clear()
+    comboBox_change_config.addItems(all_config_files)
+    if curr_config_file in all_config_files:
+        comboBox_change_config.setCurrentIndex(all_config_files.index(curr_config_file))
+    else:
+        comboBox_change_config.setCurrentIndex(all_config_files.index("config.ini"))

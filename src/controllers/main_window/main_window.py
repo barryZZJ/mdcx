@@ -7,7 +7,7 @@ import traceback
 import webbrowser
 
 from PyQt5.QtCore import QEvent, QPoint, Qt, QTimer, pyqtSignal
-from PyQt5.QtGui import QCursor, QHoverEvent, QIcon, QKeySequence
+from PyQt5.QtGui import QCursor, QHoverEvent, QIcon, QKeySequence, QMouseEvent
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -62,7 +62,7 @@ from views.MDCx import Ui_MDCx
 
 from ..cut_window import CutWindow
 from .init import Init_QSystemTrayIcon, Init_Singal, Init_Ui, init_QTreeWidget
-from .load_config import load_config
+from .load_config import load_config, reload_config_files
 from .save_config import save_config
 from .style import set_dark_style, set_style
 
@@ -1988,6 +1988,17 @@ class MyMAinWindow(QMainWindow):
     def switch_custom_website_change(self, new_website_name):
         self.Ui.lineEdit_custom_website.setText(getattr(config, f"{new_website_name}_website", ""))
 
+    # 点击切换配置时的下拉菜单
+    def comboBox_change_config_clicked(self, event: QMouseEvent):
+        if event.button() == Qt.LeftButton:
+            config_folder = manager.data_folder
+            config_file = manager.file
+            config_path = manager.path
+            if not os.path.exists(config_path):
+                config_file = ""
+            reload_config_files(config_folder, self.Ui.comboBox_change_config, config_file)
+            self.Ui.comboBox_change_config.showPopup()
+
     # 切换配置
     def config_file_change(self, new_config_file):
         if new_config_file != manager.file:
@@ -2068,6 +2079,12 @@ class MyMAinWindow(QMainWindow):
             if new_config_name != manager.file:
                 manager.file = new_config_name
                 self.pushButton_save_config_clicked()
+                config_folder = manager.data_folder
+                config_file = manager.file
+                config_path = manager.path
+                if not os.path.exists(config_path):
+                    config_file = ""
+                reload_config_files(config_folder, self.Ui.comboBox_change_config, config_file)
 
     def save_config(self): ...
 
